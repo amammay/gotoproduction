@@ -1,4 +1,155 @@
-# Golang Production App
+# My Golang Production App
+
+Reference source code found [here on github](https://github.com/amammay/gotoproduction)
+
+## Rest api app structure
+
+Supporting resources
+
+- https://pace.dev/blog/2018/05/09/how-I-write-http-services-after-eight-years.html
+
+As a note this is a somewhat opinionated section...
+
+### Server struct
+
+App server level dependencies are fields on our server struct (think something like a database, or router).
+
+```go
+package main
+
+type server struct {
+	router    *mux.Router
+	firestore *firestore.Client
+}
+```
+
+Main func just calls our run function, so we can handle fatal errors in a nice, easy to consume manor.
+
+```go
+package main
+
+func main() {
+	err := run()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "run(): %w\n", err)
+	}
+}
+
+// run is a nice function that does all our server setup and starts listening for requests
+func run() error {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	client, err := firestore.NewClient(context.Background(), "TODO-PROJECT")
+	if err != nil {
+		return fmt.Errorf("firestore.NewClient(): %w", err)
+	}
+	s := newServer(client)
+
+	server := http.Server{
+		Addr:         ":" + port,
+		Handler:      s,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+	}
+	return server.ListenAndServe()
+}
+
+```
+
+Our server implements the http.Handler interface that way we could easily swap router implementations.
+
+```go
+package main
+
+func (s *server) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	s.router.ServeHTTP(writer, request)
+}
+
+```
+
+#### Handlers/Middleware
+
+Our handlers just hang off the server struct as a way to provide a closure for a handler func.
+
+```go
+package main
+
+func (s *server) handleFindDog(someService *dogs.DogService) http.HandlerFunc {
+	//define our request/response needed structs within the closure 
+	type DogTypesResponse struct {
+		Dogs []*dogs.Dog `json:"dogs"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		//...Do request processing, maybe use the DogService we have access to as well :)
+		response := &DogTypesResponse{Dogs: byType}
+		s.respond(w, response, http.StatusOK)
+	}
+}
+
+```
+
+In addition, middleware is just regular old go code, nothing special here. Just do our middleware processing and either
+end the request chain or continue to the next handler.
+
+```go
+package main
+
+func (s *server) isAllowed(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// if user is not allowed, then just send a 404
+		if !userAllowed(r) {
+			http.NotFound(w, r)
+			return
+		}
+		// otherwise process the request to the next function
+		next(w, r)
+	}
+}
+```
+
+Applying the middleware would be something as easy as
+
+```go
+package main
+
+// apply our middleware
+r.HandleFunc("/find", s.isAllowed(s.handleFindDog(dogService))).Methods(http.MethodGet)
+
+
+```
+
+#### Routing
+
+Our requests routing is defined all withing a `routes` method that hangs off our server struct, that way you can easily
+identify how all the routes are structured for our application
+
+```go
+package main
+
+// as a fyi we are using github.com/gorilla/mux as our router
+func (s *server) routes() {
+
+	dogService := dogs.NewDogService(s.firestore)
+
+	func(r *mux.Router) {
+		r.HandleFunc("/find", s.handleFindDog(dogService)).Methods(http.MethodGet)
+		r.HandleFunc("/{dogID}", s.handleGetDog(dogService)).Methods(http.MethodGet)
+		r.HandleFunc("", s.handleCreateDog(dogService)).Methods(http.MethodPost)
+	}(s.router.PathPrefix("/dogs").Subrouter())
+
+}
+```
+
+### Logging
+
+Using one of these products should get the job done
+
+- https://github.com/uber-go/zap
+- https://github.com/sirupsen/logrus
 
 ## Testing
 
