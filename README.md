@@ -23,7 +23,7 @@ type server struct {
 }
 ```
 
-Main func just calls our run function, so we can handle fatal errors in a nice, easy to consume manor.
+Main func just calls our run function, so we can handle fatal errors in a nice, easy to consume manner.
 
 ```go
 package main
@@ -82,6 +82,10 @@ func (s *server) handleFindDog(someService *dogs.DogService) http.HandlerFunc {
 	type DogTypesResponse struct {
 		Dogs []*dogs.Dog `json:"dogs"`
 	}
+
+	// you could do some setup processing here as well
+	// this would only be executed while the server is booting, and will be guaranteed to be finished before receiving requests.
+	serviceConfig := getServiceConfig()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		//...Do request processing, maybe use the DogService we have access to as well :)
