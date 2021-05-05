@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/amammay/gotoproduction/dogs"
+	"github.com/amammay/gotoproduction"
 	"github.com/amammay/gotoproduction/internal"
 	"github.com/matryer/is"
 	"github.com/testcontainers/testcontainers-go"
@@ -88,8 +88,8 @@ func test_handleGetDog(s *server, fsClient *internal.FsTestingClient) func(t *te
 		is := is.New(t)
 		fsClient.ClearData(t)
 
-		dogService := dogs.NewDogService(fsClient.Client)
-		dog, err := dogService.CreateDog(context.Background(), &dogs.CreateDogRequest{
+		dogService := gotoproduction.NewDogService(fsClient.Client)
+		dog, err := dogService.CreateDog(context.Background(), &gotoproduction.CreateDogRequest{
 			Name: "Oscar",
 			Age:  1,
 			Type: "Golden Doodle",
@@ -115,9 +115,9 @@ func test_handleFindDog(s *server, fsClient *internal.FsTestingClient) func(t *t
 		is := is.New(t)
 		fsClient.ClearData(t)
 
-		dogService := dogs.NewDogService(fsClient.Client)
+		dogService := gotoproduction.NewDogService(fsClient.Client)
 		dogType := "Golden Doodle"
-		_, err := dogService.CreateDog(context.Background(), &dogs.CreateDogRequest{
+		_, err := dogService.CreateDog(context.Background(), &gotoproduction.CreateDogRequest{
 			Name: "Oscar",
 			Age:  1,
 			Type: dogType,
@@ -146,9 +146,9 @@ func test_handleFindDog_nonFound(s *server, fsClient *internal.FsTestingClient) 
 		is := is.New(t)
 		fsClient.ClearData(t)
 
-		dogService := dogs.NewDogService(fsClient.Client)
+		dogService := gotoproduction.NewDogService(fsClient.Client)
 		dogType := "Golden Doodle"
-		_, err := dogService.CreateDog(context.Background(), &dogs.CreateDogRequest{
+		_, err := dogService.CreateDog(context.Background(), &gotoproduction.CreateDogRequest{
 			Name: "Oscar",
 			Age:  1,
 			Type: dogType,

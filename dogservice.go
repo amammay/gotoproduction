@@ -1,4 +1,4 @@
-package dogs
+package gotoproduction
 
 import (
 	"cloud.google.com/go/firestore"

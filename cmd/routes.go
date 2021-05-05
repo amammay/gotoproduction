@@ -2,14 +2,14 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/amammay/gotoproduction/dogs"
+	"github.com/amammay/gotoproduction"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
 func (s *server) routes() {
 
-	dogService := dogs.NewDogService(s.firestore)
+	dogService := gotoproduction.NewDogService(s.firestore)
 
 	func(r *mux.Router) {
 		r.HandleFunc("/find", s.handleFindDog(dogService)).Methods(http.MethodGet)

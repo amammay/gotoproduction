@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/amammay/gotoproduction/dogs"
+	"github.com/amammay/gotoproduction"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
-func (s *server) handleGetDog(dogService *dogs.DogService) http.HandlerFunc {
+func (s *server) handleGetDog(dogService *gotoproduction.DogService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		dogID, ok := vars["dogID"]
@@ -15,7 +15,7 @@ func (s *server) handleGetDog(dogService *dogs.DogService) http.HandlerFunc {
 			return
 		}
 		dog, err := dogService.GetDogByID(r.Context(), dogID)
-		if err == dogs.ErrDogNotFound {
+		if err == gotoproduction.ErrDogNotFound {
 			s.respond(w, nil, http.StatusNotFound)
 			return
 		}
@@ -27,9 +27,9 @@ func (s *server) handleGetDog(dogService *dogs.DogService) http.HandlerFunc {
 	}
 }
 
-func (s *server) handleFindDog(dogService *dogs.DogService) http.HandlerFunc {
+func (s *server) handleFindDog(dogService *gotoproduction.DogService) http.HandlerFunc {
 	type DogTypesResponse struct {
-		Dogs []*dogs.Dog `json:"dogs"`
+		Dogs []*gotoproduction.Dog `json:"dogs"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -49,12 +49,12 @@ func (s *server) handleFindDog(dogService *dogs.DogService) http.HandlerFunc {
 	}
 }
 
-func (s *server) handleCreateDog(dogService *dogs.DogService) http.HandlerFunc {
+func (s *server) handleCreateDog(dogService *gotoproduction.DogService) http.HandlerFunc {
 	type CreateDogResponse struct {
 		DogID string `json:"dog_id"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		request := &dogs.CreateDogRequest{}
+		request := &gotoproduction.CreateDogRequest{}
 		err := s.decode(r, request)
 		if err != nil {
 			s.respond(w, nil, http.StatusBadRequest)
