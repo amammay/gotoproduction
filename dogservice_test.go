@@ -3,7 +3,8 @@ package gotoproduction_test
 import (
 	"context"
 	"github.com/amammay/gotoproduction"
-	"github.com/amammay/gotoproduction/internal"
+	"github.com/amammay/gotoproduction/internal/logx"
+	"github.com/amammay/gotoproduction/internal/testx"
 	"github.com/matryer/is"
 	"github.com/testcontainers/testcontainers-go"
 	"testing"
@@ -17,7 +18,7 @@ func TestDogService(t *testing.T) {
 	ctx := context.Background()
 
 	// set up out testing container
-	fsContainer, err := internal.CreateFirestoreContainer(ctx)
+	fsContainer, err := testx.CreateFirestoreContainer(ctx)
 	if err != nil {
 		t.Fatalf("createFirestoreContainer() err = %v; want nil", err)
 	}
@@ -37,16 +38,16 @@ func TestDogService(t *testing.T) {
 	}
 
 	// home made firestore testing client that has a util method for clearing all data
-	fsClient := internal.NewFirestoreTestingClient(ctx, t, endpoint)
+	fsClient := testx.NewFirestoreTestingClient(ctx, t, endpoint)
 
-	service := gotoproduction.NewDogService(fsClient.Client)
+	service := gotoproduction.NewDogService(fsClient.Client, logx.NewTesterLogger(t))
 	t.Run("Create", testDogService_CreateDog(service, fsClient))
 	t.Run("Find By Type", testDogService_FindDogByType(service, fsClient))
 	t.Run("GetDog By ID", testDogService_GetDogByID(service, fsClient))
 }
 
 // simple test case, just creates a dog
-func testDogService_CreateDog(ds *gotoproduction.DogService, fsClient *internal.FsTestingClient) func(t *testing.T) {
+func testDogService_CreateDog(ds *gotoproduction.DogService, fsClient *testx.FsTestingClient) func(t *testing.T) {
 	return func(t *testing.T) {
 		fsClient.ClearData(t)
 		ctx := context.Background()
@@ -67,7 +68,7 @@ func testDogService_CreateDog(ds *gotoproduction.DogService, fsClient *internal.
 }
 
 // a bit more complex test case, creates a dog and then attempts to find that dog we created
-func testDogService_FindDogByType(ds *gotoproduction.DogService, fsClient *internal.FsTestingClient) func(t *testing.T) {
+func testDogService_FindDogByType(ds *gotoproduction.DogService, fsClient *testx.FsTestingClient) func(t *testing.T) {
 	return func(t *testing.T) {
 		fsClient.ClearData(t)
 
@@ -92,7 +93,7 @@ func testDogService_FindDogByType(ds *gotoproduction.DogService, fsClient *inter
 }
 
 // table driven test example, create a dog then attempt to find it by its ID, also test to see if our custom error is thrown when it cant find the dog by id
-func testDogService_GetDogByID(ds *gotoproduction.DogService, fsClient *internal.FsTestingClient) func(t *testing.T) {
+func testDogService_GetDogByID(ds *gotoproduction.DogService, fsClient *testx.FsTestingClient) func(t *testing.T) {
 
 	return func(t *testing.T) {
 		fsClient.ClearData(t)

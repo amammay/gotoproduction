@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"github.com/amammay/gotoproduction"
 	"github.com/gorilla/mux"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"net/http"
 )
 
 func (s *server) routes() {
 
-	dogService := gotoproduction.NewDogService(s.firestore)
+	dogService := gotoproduction.NewDogService(s.firestore, s.appLogger)
+
+	s.router.Use(otelmux.Middleware("gotoproduction"))
 
 	func(r *mux.Router) {
 		r.HandleFunc("/find", s.handleFindDog(dogService)).Methods(http.MethodGet)

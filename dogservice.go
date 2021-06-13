@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/amammay/gotoproduction/internal/logx"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"time"
@@ -30,16 +32,21 @@ type CreateDogRequest struct {
 }
 
 type DogService struct {
-	db *firestore.Client
+	db        *firestore.Client
+	appLogger *logx.AppLogger
 }
 
-func NewDogService(db *firestore.Client) *DogService {
-	return &DogService{db: db}
+func NewDogService(db *firestore.Client, logger *logx.AppLogger) *DogService {
+	return &DogService{db: db, appLogger: logger}
 }
 
 // GetDogByID retrieves 1 dog by its id
 func (ds *DogService) GetDogByID(ctx context.Context, id string) (*Dog, error) {
+	ctx, span := trace.SpanFromContext(ctx).Tracer().Start(ctx, "DogService.GetDogByID")
+	defer span.End()
+	logger := ds.appLogger.WrapTraceContext(ctx)
 	dogPath := fmt.Sprintf("%s/%s", dogCollectionName, id)
+	logger.Debugw("searching firestore", "path", dogPath)
 	docRefSnap, err := ds.db.Doc(dogPath).Get(ctx)
 	if status.Code(err) == codes.NotFound {
 		return nil, ErrDogNotFound
@@ -57,6 +64,11 @@ func (ds *DogService) GetDogByID(ctx context.Context, id string) (*Dog, error) {
 
 // FindDogByType will return all the dogs by a given type
 func (ds *DogService) FindDogByType(ctx context.Context, dogType string) ([]*Dog, error) {
+	ctx, span := trace.SpanFromContext(ctx).Tracer().Start(ctx, "DogService.FindDogByType")
+	defer span.End()
+	logger := ds.appLogger.WrapTraceContext(ctx)
+	logger.Debugw("searching firestore", "collection", dogCollectionName, "type", dogType)
+
 	all, err := ds.db.Collection(dogCollectionName).Where("type", "==", dogType).Documents(ctx).GetAll()
 	if err != nil {
 		return nil, fmt.Errorf("ds.db.Collection(): %w", err)
@@ -75,7 +87,12 @@ func (ds *DogService) FindDogByType(ctx context.Context, dogType string) ([]*Dog
 
 // CreateDog will create a new dog entry
 func (ds *DogService) CreateDog(ctx context.Context, request *CreateDogRequest) (string, error) {
+	ctx, span := trace.SpanFromContext(ctx).Tracer().Start(ctx, "DogService.CreateDog")
+	defer span.End()
+	logger := ds.appLogger.WrapTraceContext(ctx)
+
 	doc := ds.db.Collection(dogCollectionName).NewDoc()
+	logger.Debugw("creating firestore doc", "collection", dogCollectionName, "id", doc.ID)
 	dog := &Dog{
 		Name: request.Name,
 		Age:  request.Age,

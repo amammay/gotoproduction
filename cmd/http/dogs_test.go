@@ -5,7 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/amammay/gotoproduction"
-	"github.com/amammay/gotoproduction/internal"
+	"github.com/amammay/gotoproduction/internal/logx"
+	"github.com/amammay/gotoproduction/internal/testx"
 	"github.com/matryer/is"
 	"github.com/testcontainers/testcontainers-go"
 	"io"
@@ -22,7 +23,7 @@ func Test_server_dogs(t *testing.T) {
 	ctx := context.Background()
 
 	// set up out testing container
-	fsContainer, err := internal.CreateFirestoreContainer(ctx)
+	fsContainer, err := testx.CreateFirestoreContainer(ctx)
 	if err != nil {
 		t.Fatalf("createFirestoreContainer() err = %v; want nil", err)
 	}
@@ -42,9 +43,9 @@ func Test_server_dogs(t *testing.T) {
 	}
 
 	// home made firestore testing client that has a util method for clearing all data
-	fsClient := internal.NewFirestoreTestingClient(ctx, t, endpoint)
+	fsClient := testx.NewFirestoreTestingClient(ctx, t, endpoint)
 
-	s := newServer(fsClient.Client)
+	s := newServer(fsClient.Client, logx.NewTesterLogger(t))
 
 	t.Run("create dog handler", test_handleCreateDog(s, fsClient))
 	t.Run("get dog handler", test_handleGetDog(s, fsClient))
@@ -52,7 +53,7 @@ func Test_server_dogs(t *testing.T) {
 	t.Run("find dog handler, no dogs found", test_handleFindDog_nonFound(s, fsClient))
 }
 
-func test_handleCreateDog(s *server, fsClient *internal.FsTestingClient) func(t *testing.T) {
+func test_handleCreateDog(s *server, fsClient *testx.FsTestingClient) func(t *testing.T) {
 	type dogCreateReq struct {
 		Name string `json:"name"`
 		Type string `json:"type"`
@@ -83,12 +84,12 @@ func test_handleCreateDog(s *server, fsClient *internal.FsTestingClient) func(t 
 	}
 }
 
-func test_handleGetDog(s *server, fsClient *internal.FsTestingClient) func(t *testing.T) {
+func test_handleGetDog(s *server, fsClient *testx.FsTestingClient) func(t *testing.T) {
 	return func(t *testing.T) {
 		is := is.New(t)
 		fsClient.ClearData(t)
 
-		dogService := gotoproduction.NewDogService(fsClient.Client)
+		dogService := gotoproduction.NewDogService(fsClient.Client, logx.NewTesterLogger(t))
 		dog, err := dogService.CreateDog(context.Background(), &gotoproduction.CreateDogRequest{
 			Name: "Oscar",
 			Age:  1,
@@ -110,12 +111,12 @@ func test_handleGetDog(s *server, fsClient *internal.FsTestingClient) func(t *te
 
 }
 
-func test_handleFindDog(s *server, fsClient *internal.FsTestingClient) func(t *testing.T) {
+func test_handleFindDog(s *server, fsClient *testx.FsTestingClient) func(t *testing.T) {
 	return func(t *testing.T) {
 		is := is.New(t)
 		fsClient.ClearData(t)
 
-		dogService := gotoproduction.NewDogService(fsClient.Client)
+		dogService := gotoproduction.NewDogService(fsClient.Client, logx.NewTesterLogger(t))
 		dogType := "Golden Doodle"
 		_, err := dogService.CreateDog(context.Background(), &gotoproduction.CreateDogRequest{
 			Name: "Oscar",
@@ -141,12 +142,12 @@ func test_handleFindDog(s *server, fsClient *internal.FsTestingClient) func(t *t
 
 }
 
-func test_handleFindDog_nonFound(s *server, fsClient *internal.FsTestingClient) func(t *testing.T) {
+func test_handleFindDog_nonFound(s *server, fsClient *testx.FsTestingClient) func(t *testing.T) {
 	return func(t *testing.T) {
 		is := is.New(t)
 		fsClient.ClearData(t)
 
-		dogService := gotoproduction.NewDogService(fsClient.Client)
+		dogService := gotoproduction.NewDogService(fsClient.Client, logx.NewTesterLogger(t))
 		dogType := "Golden Doodle"
 		_, err := dogService.CreateDog(context.Background(), &gotoproduction.CreateDogRequest{
 			Name: "Oscar",

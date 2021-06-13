@@ -1,4 +1,4 @@
-package internal
+package testx
 
 import (
 	"cloud.google.com/go/firestore"
